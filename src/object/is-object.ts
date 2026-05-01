@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Nil } from '../types';
+
 /**
- * Evaluates if the {value} argument is really an object, i.e.:
- * ```typescript
+ * Evaluates if the {value} argument is really an object.
+ *
+ * @example
+ * ```ts
  * import { isObject } from '@amjs/js-utils';
  * console.log(isObject());         // false
  * console.log(isObject(null));     // false
@@ -18,6 +22,6 @@
  * @param   {any}       value To be evaluated
  * @return  {Boolean}   `true` if {value} is not `null`, `undefined` and `Array` or any other different to object.
  */
-export const isObject = (value: any): boolean =>
+export const isObject = (value: Nil<any>): boolean =>
     value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
 /* eslint-enable @typescript-eslint/no-explicit-any */
