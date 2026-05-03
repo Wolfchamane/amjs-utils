@@ -1,6 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DefaultXHR } from '../default-xhr';
-import { XHR_FETCH_METHODS, type XHRFetchMethod } from '../types';
+import type { XHRFetchMethod } from '../types';
+import {
+    XHR_FETCH_METHODS,
+    EMPTY_BODY_ERROR,
+    UNSERIALIZE_EMPTY_REQUEST_ERROR,
+    SERIALIZE_EMPTY_REQUEST_ERROR
+} from '../constants';
 
 /**
  * Adaptor for any `'application/json'` AJAX Http Request.
@@ -11,7 +17,7 @@ export class JSONAdapter extends DefaultXHR {
      * @override
      */
     protected _serialize(headers?: Record<string, string>, body?: any): Promise<void | Error> {
-        return new Promise((resolve, reject) => {
+        return new Promise(resolve => {
             this._log(this.LOG_INFO, false, `Serializing request for JSON`);
             if (this.request && this.url) {
                 const jsonHeaders: Record<string, string> = Object.assign({}, headers || {}, {
@@ -23,26 +29,24 @@ export class JSONAdapter extends DefaultXHR {
                     this.request?.headers.set(key, jsonHeaders[key]);
                 });
 
-                if (
+                const isModifyingRequest: boolean =
                     [XHR_FETCH_METHODS.PATCH, XHR_FETCH_METHODS.PUT, XHR_FETCH_METHODS.POST].includes(
                         this.request?.method as XHRFetchMethod
-                    )
-                ) {
-                    if (body) {
-                        this.request = new Request(this.url, {
-                            method: this.request?.method,
-                            headers: this.request?.headers,
-                            body: JSON.stringify(body)
-                        });
-                    } else {
-                        reject(new Error('Cannot serialize empty body request'));
-                    }
+                    ) && !!body;
+                if (isModifyingRequest) {
+                    this.request = new Request(this.url, {
+                        method: this.request?.method,
+                        headers: this.request?.headers,
+                        body: JSON.stringify(body)
+                    }) as Request;
+                } else {
+                    throw EMPTY_BODY_ERROR;
                 }
 
                 this._log(this.LOG_DETAIL, false, `Override request to: %o`, this.request);
                 resolve();
             } else {
-                reject('Cannot serialized undefined request');
+                throw SERIALIZE_EMPTY_REQUEST_ERROR;
             }
         });
     }
@@ -56,7 +60,7 @@ export class JSONAdapter extends DefaultXHR {
         if (this.response && this.response.ok) {
             return (await this.response.json()) as T;
         } else {
-            throw new Error('Cannot unSerialize empty or failed response');
+            throw UNSERIALIZE_EMPTY_REQUEST_ERROR;
         }
     }
 }

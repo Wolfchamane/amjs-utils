@@ -1,13 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
-import {
-    type XHR,
-    type XHRFetchOptions,
-    type XHRConfiguration,
-    type XHRDebugLevel,
-    type XHRFetchMethod,
-    XHR_DEBUG_LEVELS,
-    XHR_FETCH_METHODS
-} from './types';
+import { type XHR, type XHRFetchOptions, type XHRConfiguration, type XHRDebugLevel } from './types';
+import { XHR_DEBUG_LEVELS, XHR_FETCH_METHODS } from './constants';
 
 /**
  * Default class for any AJAX Http Requests
@@ -280,7 +273,7 @@ export class DefaultXHR implements XHR {
             this.request = new Request(this.url, {
                 method: method || XHR_FETCH_METHODS.GET,
                 signal: this.controller?.signal
-            });
+            }) as Request;
         }
         this._log(this.LOG_DETAIL, false, `Request info object set to: %o`, this.request);
     }
