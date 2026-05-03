@@ -16,27 +16,29 @@ import type { Nil } from '../types';
  * console.log(ref.key.param); // 'foo'
  * ```
  *
- * @param   {Object}    ref     Where to find the property
- * @param   {*}         prop    Dot-chained tree property
- * @param   {*}         value   New value to assign
- * @return  {*}         Current value of the property
+ * @param   {object}    ref     Where to find the property
+ * @param   {any}       prop    Dot-chained tree property
+ * @param   {any}       value   New value to assign
+ * @return  {any}       Current value of the property
  */
-export const dotProp = (ref: Record<string, Nil<any>>, prop: string, value: Nil<any>): Nil<any> => {
-    let result: undefined;
-    if (prop.lastIndexOf('.') === -1) {
-        result = ref[prop];
-    } else {
-        const splitProp: string[] = prop.split('.');
-        const key = splitProp.shift() || '';
-        const target = ref[key];
-        if (isObject(target)) {
-            result = dotProp(target, splitProp.join('.'), value);
+export const dotProp = (ref: Record<string, Nil<any>>, prop: string, value?: Nil<any>): Nil<any> => {
+    let result: Nil<any> = undefined;
+    if (isObject(ref)) {
+        if (prop.lastIndexOf('.') === -1) {
+            result = ref[prop];
+        } else {
+            const splitProp: string[] = prop.split('.');
+            const key = splitProp.shift() || '';
+            const target = ref[key];
+            if (isObject(target)) {
+                result = dotProp(target, splitProp.join('.'), value);
+            }
         }
-    }
 
-    if (value) {
-        result = value;
-        ref[prop] = value;
+        if (value) {
+            result = value;
+            ref[prop] = value;
+        }
     }
 
     return result;
