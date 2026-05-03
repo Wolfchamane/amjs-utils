@@ -1,10 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import fetchMock from 'jest-fetch-mock';
-import { TextAdapter, type XHR, XHR_FETCH_METHODS } from '@/xhr';
-import { describe, test, expect, beforeEach, beforeAll, afterAll } from '@jest/globals';
-
-beforeAll(() => fetchMock.enableMocks());
-afterAll(() => fetchMock.disableMocks());
+import type { XHR } from '../types';
+import { TextAdapter } from './text-adapter';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { XHR_FETCH_METHODS, EMPTY_BODY_ERROR } from '../constants';
 
 describe('TextAdapter', () => {
     const hostname: string = 'example';
@@ -13,12 +11,10 @@ describe('TextAdapter', () => {
 
     let sut: XHR;
     beforeEach(() => {
-        fetchMock.resetMocks();
         sut = new TextAdapter({ hostname, port });
     });
 
     test('"text/plain" headers are set into request', async () => {
-        fetchMock.mockResponseOnce(JSON.stringify(responseOk));
         await sut.fetch('/path');
         expect(sut.request).not.toBeUndefined();
         expect(sut.request?.headers.get('Accept')).toEqual('text/plain');
@@ -26,11 +22,10 @@ describe('TextAdapter', () => {
     });
 
     test('An error is returned if POST/PUT/PATCH request do not have a body', async () => {
-        fetchMock.mockResponseOnce(JSON.stringify(responseOk));
         const response = await sut.fetch('/path', {
             method: XHR_FETCH_METHODS.POST
         });
-        expect(response).toBeInstanceOf(Error);
+        expect(response).toEqual(EMPTY_BODY_ERROR);
     });
 });
 /* eslint-enable @typescript-eslint/no-explicit-any */

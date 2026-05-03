@@ -1,5 +1,5 @@
-import { dotProp } from '@/object';
-import { describe, test, expect } from '@jest/globals';
+import { dotProp } from './dot-prop';
+import { describe, test, expect } from 'vitest';
 
 describe('dotProp', () => {
     const objectRef = {

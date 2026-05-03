@@ -1,5 +1,5 @@
-import { isObject } from '@/object';
-import { describe, test, expect } from '@jest/globals';
+import { isObject } from './is-object';
+import { describe, test, expect } from 'vitest';
 
 describe('isObject', () => {
     [

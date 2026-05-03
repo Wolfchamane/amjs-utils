@@ -1,5 +1,5 @@
-import { uuid } from '@/other';
-import { describe, test, expect } from '@jest/globals';
+import { uuid } from './uuid';
+import { describe, test, expect } from 'vitest';
 
 describe('uuid', () => {
     test('Returns an string', () => expect(typeof uuid()).toEqual('string'));

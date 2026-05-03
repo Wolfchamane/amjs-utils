@@ -1,24 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import fetchMock from 'jest-fetch-mock';
-import { JSONAdapter, type XHR, XHR_FETCH_METHODS } from '@/xhr';
-import { describe, test, expect, beforeEach, beforeAll, afterAll } from '@jest/globals';
-
-beforeAll(() => fetchMock.enableMocks());
-afterAll(() => fetchMock.disableMocks());
+import { type XHR } from '../types';
+import { JSONAdapter } from './json-adapter';
+import { describe, test, expect, beforeEach } from 'vitest';
+import { EMPTY_BODY_ERROR, XHR_FETCH_METHODS } from '../constants';
 
 describe('JSONAdapter', () => {
     const hostname: string = 'example';
     const port: string = '3000';
-    const responseOk = { status: 'ok' };
 
     let sut: XHR;
     beforeEach(() => {
-        fetchMock.resetMocks();
         sut = new JSONAdapter({ hostname, port });
     });
 
     test('"application/json" headers are set into request', async () => {
-        fetchMock.mockResponseOnce(JSON.stringify(responseOk));
         await sut.fetch('/path');
         expect(sut.request).not.toBeUndefined();
         expect(sut.request?.headers.get('Accept')).toEqual('application/json');
@@ -26,11 +21,8 @@ describe('JSONAdapter', () => {
     });
 
     test('An error is returned if POST/PUT/PATCH request do not have a body', async () => {
-        fetchMock.mockResponseOnce(JSON.stringify(responseOk));
-        const response = await sut.fetch('/path', {
-            method: XHR_FETCH_METHODS.POST
-        });
-        expect(response).toBeInstanceOf(Error);
+        const error = await sut.fetch('/path', { method: XHR_FETCH_METHODS.POST });
+        expect(error).toEqual(EMPTY_BODY_ERROR);
     });
 });
 /* eslint-enable @typescript-eslint/no-explicit-any */
