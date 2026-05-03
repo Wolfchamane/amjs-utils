@@ -22,6 +22,6 @@ import type { Nil } from '../types';
  * @param   {any}       value To be evaluated
  * @return  {Boolean}   `true` if {value} is not `null`, `undefined` and `Array` or any other different to object.
  */
-export const isObject = (value: Nil<any>): boolean =>
+export const isObject = (value: Nil<any>): value is object =>
     value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
 /* eslint-enable @typescript-eslint/no-explicit-any */
