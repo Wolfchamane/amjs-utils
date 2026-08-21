@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
-import type { XHR, XHRConfiguration } from './types';
+import { type XHR, type XHRConfiguration, XHR_FETCH_METHODS } from './types';
 import { DefaultXHR } from './default-xhr';
 import { describe, test, expect, beforeEach } from 'vitest';
-import { XHR_FETCH_METHODS } from './constants';
+import { TRecord } from '@/types';
 
 describe('DefaultXHR', () => {
     const hostname: string = 'example';
@@ -13,12 +12,12 @@ describe('DefaultXHR', () => {
             super(config);
         }
 
-        protected _serialize(headers?: Record<string, string>, body?: any): Promise<void | Error> {
+        protected _serialize(_path: string, _headers?: TRecord<string>, _body?: unknown): Promise<void | Error> {
             return Promise.resolve();
         }
 
-        protected _unSerialize(): Promise<any | Error> {
-            return Promise.resolve();
+        protected _unSerialize<T = unknown>(_path: string): Promise<T | Error> {
+            return Promise.resolve({} as T);
         }
     }
 
@@ -29,18 +28,20 @@ describe('DefaultXHR', () => {
 
     test('Default request is performed as expected', async () => {
         await sut.fetch('/path');
-        expect(sut.request).not.toBeUndefined();
-        expect(sut.request?.method).toEqual(XHR_FETCH_METHODS.GET);
-        expect(sut.url).not.toBeUndefined();
-        expect(sut.url?.href).toEqual(`http://${hostname}:${port}/path`);
+        const config = sut.getPathRequest('/path');
+        expect(config.request).not.toBeUndefined();
+        expect(config.request?.method).toEqual(XHR_FETCH_METHODS.GET);
+        expect(config.url).not.toBeUndefined();
+        expect(config.url?.href).toEqual(`http://${hostname}:${port}/path`);
     });
 
     test('Params are added/replaced', async () => {
         await sut.fetch('/path/{id}', {
             params: { id: '1', key: 'value' }
         });
-        expect(sut.url).not.toBeUndefined();
-        expect(sut.url?.href).toEqual(`http://${hostname}:${port}/path/1?key=value`);
+        const config = sut.getPathRequest('/path/{id}');
+        expect(config.url).not.toBeUndefined();
+        expect(config.url?.href).toEqual(`http://${hostname}:${port}/path/1?key=value`);
     });
 
     test('Any error is captured and returned', async () => {
@@ -50,4 +51,3 @@ describe('DefaultXHR', () => {
         expect(response).toBeInstanceOf(Error);
     });
 });
-/* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */

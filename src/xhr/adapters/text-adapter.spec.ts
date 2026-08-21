@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { XHR } from '../types';
 import { TextAdapter } from './text-adapter';
-import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { describe, test, expect, beforeEach } from 'vitest';
 import { XHR_FETCH_METHODS, EMPTY_BODY_ERROR } from '../constants';
 
 describe('TextAdapter', () => {
@@ -16,9 +15,10 @@ describe('TextAdapter', () => {
 
     test('"text/plain" headers are set into request', async () => {
         await sut.fetch('/path');
-        expect(sut.request).not.toBeUndefined();
-        expect(sut.request?.headers.get('Accept')).toEqual('text/plain');
-        expect(sut.request?.headers.get('Content-Type')).toEqual('text/plain');
+        const config = sut.getPathRequest('/path');
+        expect(config.request).not.toBeUndefined();
+        expect(config.request?.headers.get('Accept')).toEqual('text/plain');
+        expect(config.request?.headers.get('Content-Type')).toEqual('text/plain');
     });
 
     test('An error is returned if POST/PUT/PATCH request do not have a body', async () => {
@@ -28,4 +28,3 @@ describe('TextAdapter', () => {
         expect(response).toEqual(EMPTY_BODY_ERROR);
     });
 });
-/* eslint-enable @typescript-eslint/no-explicit-any */

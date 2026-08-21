@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * This file contains some snippets showing different examples on how to use any available
  * XHR adapter classes from '@amjs/js-utils'.
@@ -7,7 +6,7 @@
  * @NOTICE: For the following examples I will `JSONAdapter` as `Adapter`
  */
 
-import { type XHR, XHR_FETCH_METHODS, XHR_DEBUG_LEVELS, JSONAdapter as Adapter } from '../../src'; // your code will be "from '@amjs/js-utils';"
+import { type XHR, XHR_FETCH_METHODS, XHR_DEBUG_LEVELS, JSONAdapter as Adapter } from '../../src/xhr'; // your code will be "from '@amjs/js-utils';"
 
 const hostname: string = 'localhost';
 
@@ -17,7 +16,8 @@ const hostname: string = 'localhost';
 (async () => {
     const instance: XHR = new Adapter({ hostname });
     await instance.fetch('/path');
-    console.log('[%s] %s', instance.request?.method, instance.url); // [GET] http://localhost/path
+    const config = instance.getPathRequest('/path');
+    console.log('[%s] %s', config?.request?.method, config?.url); // [GET] http://localhost/path
 })();
 
 /**
@@ -28,7 +28,8 @@ const hostname: string = 'localhost';
 (async () => {
     const instance: XHR = new Adapter({ hostname });
     await instance.fetch('/path/{param}', { params: { param: 'value' } });
-    console.log('[%s] %s', instance.request?.method, instance.url); // [GET] http://localhost/path/value
+    const config = instance.getPathRequest('/path');
+    console.log('[%s] %s', config?.request?.method, config?.url); // [GET] http://localhost/path/value
 })();
 
 /**
@@ -38,7 +39,8 @@ const hostname: string = 'localhost';
 (async () => {
     const instance: XHR = new Adapter({ hostname });
     await instance.fetch('/path', { params: { param: 'value' } });
-    console.log('[%s] %s', instance.request?.method, instance.url); // [GET] http://localhost/path?param=value
+    const config = instance.getPathRequest('/path');
+    console.log('[%s] %s', config?.request?.method, config?.url); // [GET] http://localhost/path?param=value
 })();
 
 /**
@@ -52,7 +54,8 @@ const hostname: string = 'localhost';
         method: XHR_FETCH_METHODS.POST, // Define the method to use
         body: { key: 'value' } // Include the body to be sent
     });
-    console.log('[%s] %s %o', instance.request?.method, instance.url, instance.request?.body);
+    const config = instance.getPathRequest('/path');
+    console.log('[%s] %s %o', config?.request?.method, config?.url, config?.request?.body);
     // [POST] http://localhost/path { key: 'value' }
 })();
 
@@ -63,7 +66,8 @@ const hostname: string = 'localhost';
     const port: string = '3000';
     const instance: XHR = new Adapter({ hostname, port });
     await instance.fetch('/path');
-    console.log('[%s] %s', instance.request?.method, instance.url); // [GET] http://localhost:3000/path
+    const config = instance.getPathRequest('/path');
+    console.log('[%s] %s', config?.request?.method, config?.url); // [GET] http://localhost:3000/path
 })();
 
 /**
@@ -76,7 +80,8 @@ const hostname: string = 'localhost';
     const debug = XHR_DEBUG_LEVELS.DETAILS;
     const instance: XHR = new Adapter({ hostname, debug });
     await instance.fetch('/path');
-    console.log('[%s] %s', instance.request?.method, instance.url); // [GET] http://localhost/path
+    const config = instance.getPathRequest('/path');
+    console.log('[%s] %s', config?.request?.method, config?.url); // [GET] http://localhost/path
 })();
 
 /**
@@ -85,7 +90,7 @@ const hostname: string = 'localhost';
 (async () => {
     const instance: XHR = new Adapter({ hostname });
     instance.fetch('/path');
-    instance.abort();
+    instance.abort('/path');
 })();
 
 /**
@@ -95,7 +100,8 @@ const hostname: string = 'localhost';
 (async () => {
     const instance: XHR = new Adapter({ hostname, secure: true });
     await instance.fetch('/path');
-    console.log('[%s] %s', instance.request?.method, instance.url); // [GET] https://localhost/path
+    const config = instance.getPathRequest('/path');
+    console.log('[%s] %s', config?.request?.method, config?.url); // [GET] https://localhost/path
 })();
 
 /**
@@ -111,18 +117,17 @@ const hostname: string = 'localhost';
  */
 (async () => {
     class MyAdapter extends Adapter {
-        protected _serialize(headers?: Record<string, string>, body?: any): Promise<any> {
+        protected _serialize(path: string, headers?: Record<string, string>, body?: unknown): Promise<void | Error> {
             // Do here whatever your adapter needs to do BEFORE performing the request
-            return super._serialize(headers, body);
+            return super._serialize(path, headers, body);
         }
 
-        protected async _unSerialize(): Promise<any> {
+        protected async _unSerialize<TResponse = unknown>(path: string): Promise<TResponse> {
             // Do here whatever your adapter needs to do AFTER performing the request
-            return super._unSerialize();
+            return super._unSerialize<TResponse>(path);
         }
     }
 
     const instance: XHR = new MyAdapter({ hostname });
     await instance.fetch('/path');
 })();
-/* eslint-enable @typescript-eslint/no-explicit-any */

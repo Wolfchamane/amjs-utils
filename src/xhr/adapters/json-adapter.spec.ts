@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { type XHR } from '../types';
 import { JSONAdapter } from './json-adapter';
 import { describe, test, expect, beforeEach } from 'vitest';
@@ -15,9 +14,10 @@ describe('JSONAdapter', () => {
 
     test('"application/json" headers are set into request', async () => {
         await sut.fetch('/path');
-        expect(sut.request).not.toBeUndefined();
-        expect(sut.request?.headers.get('Accept')).toEqual('application/json');
-        expect(sut.request?.headers.get('Content-Type')).toEqual('application/json');
+        const config = sut.getPathRequest('/path');
+        expect(config.request).not.toBeUndefined();
+        expect(config.request?.headers.get('Accept')).toEqual('application/json');
+        expect(config.request?.headers.get('Content-Type')).toEqual('application/json');
     });
 
     test('An error is returned if POST/PUT/PATCH request do not have a body', async () => {
@@ -25,4 +25,3 @@ describe('JSONAdapter', () => {
         expect(error).toEqual(EMPTY_BODY_ERROR);
     });
 });
-/* eslint-enable @typescript-eslint/no-explicit-any */
