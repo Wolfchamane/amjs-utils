@@ -1,13 +1,14 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import {
     type XHR,
     type XHRFetchOptions,
     type XHRConfiguration,
     type XHRDebugLevel,
-    type XHRFetchMethod,
+    type PathRequestConfig,
     XHR_DEBUG_LEVELS,
     XHR_FETCH_METHODS
 } from './types';
+import { MISSING_REQUEST_CONFIG_ERROR } from './constants';
+import type { TRecord } from '../types';
 
 /**
  * Default class for any AJAX Http Requests
@@ -55,36 +56,10 @@ export class DefaultXHR implements XHR {
     protected port: undefined | string;
 
     /**
-     * To control request
-     * @property    controller
-     * @type        {AbortController|undefined}
-     * @protected
+     * Map a request configuration to a path
+     * @private
      */
-    protected controller: AbortController | undefined;
-
-    /**
-     * To be performed
-     * @property    request
-     * @type        {Request|undefined}
-     * @protected
-     */
-    protected request: Request | undefined;
-
-    /**
-     * Obtained from request
-     * @property    response
-     * @type        {Response|undefined}
-     * @protected
-     */
-    protected response: Response | undefined;
-
-    /**
-     * Fetched
-     * @property    url
-     * @type        {URL|undefined}
-     * @protected
-     */
-    protected url: URL | undefined;
+    protected _pathRequestMap: Map<string, PathRequestConfig>;
 
     /**
      * @param {XHRConfiguration} config  Class configuration
@@ -95,6 +70,7 @@ export class DefaultXHR implements XHR {
         this.port = port;
         this.debug = debug || XHR_DEBUG_LEVELS.QUIET;
         this.secure = secure || false;
+        this._pathRequestMap = new Map();
     }
 
     /**
@@ -126,6 +102,26 @@ export class DefaultXHR implements XHR {
     }
 
     /**
+     * Obtains the request configuration for a specific client path
+     * @param {string}  path Which configuration will be obtained
+     * @return {PathRequestConfig|undefined}
+     * @protected
+     */
+    getPathRequest(path: string): PathRequestConfig | undefined {
+        return this._pathRequestMap.get(path);
+    }
+
+    /**
+     * Adds or updates a request configuration of a specific path of the client
+     * @param {string}  path To register o update
+     * @param {Partial<PathRequestConfig>}  config  Request configuration
+     * @protected
+     */
+    protected _setPathRequest(path: string, config: Partial<PathRequestConfig>): void {
+        this._pathRequestMap.set(path, config);
+    }
+
+    /**
      * Performs a `console.log`
      * @see   https://developer.mozilla.org/en/docs/Web/API/console
      * @param {string}              level   Specific level of a single log message
@@ -147,12 +143,13 @@ export class DefaultXHR implements XHR {
     /**
      * Serializes a request.
      * @notice Must be override by adapter classes
-     * @param   {undefined|Record<string, string>}    headers Set of request headers
-     * @param   {undefined|any}                       body    To be sent as part of the request
+     * @param   {string}                              _path    Of the request
+     * @param   {undefined|Record<string, string>}    _headers Set of request headers
+     * @param   {undefined|unknown}                   _body    To be sent as part of the request
      * @return  {Promise<void|Error>}                 An `Error` if request cannot be serialized.
      * @protected
      */
-    protected _serialize(headers?: Record<string, string>, body?: any): Promise<void | Error> {
+    protected _serialize(_path: string, _headers?: Record<string, string>, _body?: unknown): Promise<void | Error> {
         this._log(this.LOG_WARNING, true, '_serialize method must be override!');
 
         return Promise.resolve();
@@ -162,20 +159,21 @@ export class DefaultXHR implements XHR {
      * des-Serializes a request.
      * @notice Must be override by adapter classes
      * @protected
-     * @return  {Promise<any|Error>}    Returns the expected type associated with the fetch or an Error
+     * @param   {string}                    _path Of the request
+     * @return  {Promise<unknown|Error>}    Returns the expected type associated with the fetch or an Error
      */
-    protected _unSerialize<T>(): Promise<T | any | Error> {
+    protected _unSerialize<T = unknown>(_path: string): Promise<T | Error> {
         this._log(this.LOG_WARNING, true, '_unSerialize method must be override!');
 
-        return Promise.resolve();
+        return Promise.resolve({} as T);
     }
 
     /**
      * Builds request {AbortController}
      * @private
      */
-    private _buildController(): void {
-        this.controller = new AbortController();
+    private _buildController(): AbortController {
+        return new AbortController();
     }
 
     /**
@@ -191,10 +189,10 @@ export class DefaultXHR implements XHR {
         let url: string = [protocol, [this.hostname, this.port].filter(Boolean).join(':')].join('://');
 
         if (path.startsWith('/')) {
-            url += path;
-        } else {
-            url = [url, path].join('/');
+            path = path.substring(1);
         }
+
+        url = [url, path].join('/');
 
         this._log(this.LOG_DETAIL, false, `Base URL is "${url}"`);
         return url;
@@ -211,13 +209,13 @@ export class DefaultXHR implements XHR {
      * @return  {string}                URL with all parameters in path replaced
      * @private
      */
-    private _replacePathQueryParams(url: string, params: Record<string, any>): string {
+    private _replacePathQueryParams(url: string, params: TRecord<string>): string {
         this._log(this.LOG_INFO, false, 'Replacing path query params');
         const paramInPathPattern: RegExp = /(([:{])[a-zA-Z-]+}?)/g;
         if (paramInPathPattern.test(url)) {
-            url = url.replace(paramInPathPattern, (match: string) => {
+            url = url.replace(paramInPathPattern, (match: string): string => {
                 const key: string = match.replace(/\W/g, '');
-                const value: any = params[key];
+                const value: string = params[key];
 
                 if (value) {
                     delete params[key];
@@ -240,11 +238,10 @@ export class DefaultXHR implements XHR {
      * @return  {string}                URL with query parameters
      * @private
      */
-    private _addQueryParams(url: string, params: Record<string, any>): string {
+    private _addQueryParams(url: string, params: TRecord<string>): string {
         this._log(this.LOG_INFO, false, 'Adding additional query params');
-        const keys: string[] = Object.keys(params);
 
-        return keys.length ? [url, keys.map((key: string) => `${key}=${params[key]}`).join('&')].join('?') : url;
+        return [url, new URLSearchParams(params).toString()].join('?');
     }
 
     /**
@@ -253,18 +250,20 @@ export class DefaultXHR implements XHR {
      * @param   {undefined|Record<string, any>} params  To replace or add to end URL
      * @private
      */
-    private _buildRequestURL(path: string, params?: Record<string, any>): void {
+    private _buildRequestURL(path: string, params?: TRecord): URL {
         this._log(this.LOG_INFO, false, 'Building request URL');
-        let url = this._buildBaseURL(path);
+        let url: string | URL = this._buildBaseURL(path);
 
         if (params) {
-            const paramsCopy = Object.assign({}, params);
+            const paramsCopy = JSON.parse(JSON.stringify(params ?? {}));
             url = this._replacePathQueryParams(url, paramsCopy);
             url = this._addQueryParams(url, paramsCopy);
         }
 
-        this.url = new URL(url);
-        this._log(this.LOG_DETAIL, false, `URL set to: %o`, this.url);
+        url = new URL(url);
+        this._log(this.LOG_DETAIL, false, `URL set to: %o`, url);
+
+        return url;
     }
 
     /**
@@ -274,15 +273,20 @@ export class DefaultXHR implements XHR {
      */
     buildRequest(path: string, { params, method }: XHRFetchOptions): void {
         this._log(this.LOG_INFO, false, 'Building request info object');
-        this._buildController();
-        this._buildRequestURL(path, params);
-        if (this.url) {
-            this.request = new Request(this.url, {
-                method: method || XHR_FETCH_METHODS.GET,
-                signal: this.controller?.signal
-            });
-        }
-        this._log(this.LOG_DETAIL, false, `Request info object set to: %o`, this.request);
+        const controller: AbortController = this._buildController();
+        const url: URL = this._buildRequestURL(path, params);
+        const request = new Request(url, {
+            method: method || XHR_FETCH_METHODS.GET,
+            signal: controller.signal
+        }) as Request;
+
+        this._setPathRequest(path, {
+            controller,
+            url,
+            request
+        });
+
+        this._log(this.LOG_DETAIL, false, `Request info object set to: %o`, request);
     }
 
     /**
@@ -290,23 +294,28 @@ export class DefaultXHR implements XHR {
      * @param   {string}          path    To be fetched
      * @param   {XHRFetchOptions} options Configures a single AJAX request
      */
-    async fetch<T>(path: string, options?: XHRFetchOptions): Promise<T | Error> {
-        let result: T | Error;
+    async fetch<TResponse = unknown, TBody = unknown>(
+        path: string,
+        options?: XHRFetchOptions<TBody>
+    ): Promise<TResponse | Error> {
+        let result: TResponse | Error;
         try {
             const { params, method, headers, body } = options || {};
             this._log(this.LOG_GROUP, false, `Request to "${path}"`);
-            if (!this.request) {
-                this.buildRequest(path, { params, method });
-            }
-            await this._serialize(headers, body);
-            if (this.request) {
-                this._log(this.LOG_DETAIL, false, 'Request start!');
-                this._log(this.LOG_TIME, false, 'Duration');
-                this.response = await fetch(this.request);
+            this.buildRequest(path, { params, method });
+            await this._serialize(path, headers, body);
+            this._log(this.LOG_DETAIL, false, 'Request start!');
+            this._log(this.LOG_TIME, false, 'Duration');
+            const config: PathRequestConfig | undefined = this.getPathRequest(path);
+            if (config) {
+                const response = await fetch(config.request as Request);
+                this._setPathRequest(path, { ...config, response });
                 this._log(this.LOG_TIME_END, false, 'Duration');
                 this._log(this.LOG_DETAIL, false, 'Request end!');
+                result = await this._unSerialize<TResponse>(path);
+            } else {
+                throw MISSING_REQUEST_CONFIG_ERROR;
             }
-            result = await this._unSerialize<T>();
         } catch (e: unknown) {
             this._log(this.LOG_ERROR, false, (e as Error).message);
             result = e as Error;
@@ -321,12 +330,14 @@ export class DefaultXHR implements XHR {
 
     /**
      * Aborts current request
+     * @param {string}              path request to be aborted
      * @param {undefined|string}    reason To abort request
      */
-    abort(reason?: string) {
-        if (this.controller) {
-            this._log(this.LOG_INFO, false, `Aborting request to ${this.url?.href}`);
-            this.controller.abort(reason);
+    abort(path: string, reason?: string) {
+        const config: PathRequestConfig | undefined = this.getPathRequest(path);
+        if (config && config.controller) {
+            this._log(this.LOG_INFO, false, `Aborting request to ${config.url?.href}`);
+            config.controller.abort(reason);
         }
     }
 
@@ -334,10 +345,6 @@ export class DefaultXHR implements XHR {
      * Resets instance to its default status
      */
     reset(): void {
-        this.controller = undefined;
-        this.request = undefined;
-        this.response = undefined;
-        this.url = undefined;
+        this._pathRequestMap = new Map();
     }
 }
-/* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */

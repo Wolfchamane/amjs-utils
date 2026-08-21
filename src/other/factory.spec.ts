@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Factory, type FactoryInstance } from '@/other';
-import { describe, test, expect } from '@jest/globals';
+import { Factory, type FactoryInstance } from './factory';
+import { describe, test, expect } from 'vitest';
 
 class MyClass {
     config: any;

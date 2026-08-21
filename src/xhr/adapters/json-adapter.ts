@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DefaultXHR } from '../default-xhr';
-import { XHR_FETCH_METHODS, type XHRFetchMethod } from '../types';
+import { type PathRequestConfig, XHR_FETCH_METHODS } from '../types';
+import { EMPTY_BODY_ERROR, UNSERIALIZE_EMPTY_REQUEST_ERROR, SERIALIZE_EMPTY_REQUEST_ERROR } from '../constants';
+import { TRecord } from '../../types';
 
 /**
  * Adaptor for any `'application/json'` AJAX Http Request.
@@ -10,39 +12,39 @@ export class JSONAdapter extends DefaultXHR {
     /**
      * @override
      */
-    protected _serialize(headers?: Record<string, string>, body?: any): Promise<void | Error> {
-        return new Promise((resolve, reject) => {
+    protected _serialize(path: string, headers?: TRecord<string>, body?: any): Promise<void | Error> {
+        return new Promise(resolve => {
             this._log(this.LOG_INFO, false, `Serializing request for JSON`);
-            if (this.request && this.url) {
-                const jsonHeaders: Record<string, string> = Object.assign({}, headers || {}, {
+            const config: PathRequestConfig | undefined = this.getPathRequest(path);
+            if (config && config.request && config.url) {
+                const jsonHeaders: TRecord<string> = Object.assign({}, headers || {}, {
                     Accept: 'application/json',
                     'Content-Type': 'application/json'
                 });
 
                 Object.keys(jsonHeaders).forEach((key: string) => {
-                    this.request?.headers.set(key, jsonHeaders[key]);
+                    config.request?.headers.set(key, jsonHeaders[key]);
                 });
 
-                if (
-                    [XHR_FETCH_METHODS.PATCH, XHR_FETCH_METHODS.PUT, XHR_FETCH_METHODS.POST].includes(
-                        this.request?.method as XHRFetchMethod
-                    )
-                ) {
-                    if (body) {
-                        this.request = new Request(this.url, {
-                            method: this.request?.method,
-                            headers: this.request?.headers,
-                            body: JSON.stringify(body)
-                        });
-                    } else {
-                        reject(new Error('Cannot serialize empty body request'));
-                    }
+                const isModifyingRequest: boolean =
+                    [`${XHR_FETCH_METHODS.PATCH}`, `${XHR_FETCH_METHODS.PUT}`, `${XHR_FETCH_METHODS.POST}`].includes(
+                        `${config.request.method}`
+                    ) && !!body;
+                if (isModifyingRequest) {
+                    config.request = new Request(config.url, {
+                        method: config.request.method,
+                        headers: config.request.headers,
+                        body: JSON.stringify(body)
+                    }) as Request;
+                } else {
+                    throw EMPTY_BODY_ERROR;
                 }
 
-                this._log(this.LOG_DETAIL, false, `Override request to: %o`, this.request);
+                this._log(this.LOG_DETAIL, false, `Override request to: %o`, config.request);
+                this._setPathRequest(path, config);
                 resolve();
             } else {
-                reject('Cannot serialized undefined request');
+                throw SERIALIZE_EMPTY_REQUEST_ERROR;
             }
         });
     }
@@ -51,12 +53,13 @@ export class JSONAdapter extends DefaultXHR {
      * @override
      * @protected
      */
-    protected async _unSerialize<T>(): Promise<T | Error> {
+    protected async _unSerialize<T = unknown>(path: string): Promise<T | Error> {
         this._log(this.LOG_INFO, false, `unSerializing request for JSON`);
-        if (this.response && this.response.ok) {
-            return (await this.response.json()) as T;
+        const config: PathRequestConfig | undefined = this.getPathRequest(path);
+        if (config && config.response && config.response.ok) {
+            return (await config.response.json()) as T;
         } else {
-            throw new Error('Cannot unSerialize empty or failed response');
+            throw UNSERIALIZE_EMPTY_REQUEST_ERROR;
         }
     }
 }

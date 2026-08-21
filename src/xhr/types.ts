@@ -1,38 +1,85 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { TRecord } from '../types';
+
+export interface PathRequestConfig {
+    /**
+     * To control request
+     * @property    controller
+     * @type        {AbortController|undefined}
+     * @protected
+     */
+    controller?: AbortController;
+
+    /**
+     * To be performed
+     * @property    request
+     * @type        {Request|undefined}
+     * @protected
+     */
+    request?: Request;
+
+    /**
+     * Obtained from request
+     * @property    response
+     * @type        {Response|undefined}
+     * @protected
+     */
+    response?: Response;
+
+    /**
+     * Fetched
+     * @property    url
+     * @type        {URL|undefined}
+     * @protected
+     */
+    url?: URL;
+}
+
 export type XHRDebugLevel = 'quiet' | 'error' | 'warning' | 'log' | 'details';
-export const XHR_DEBUG_LEVELS = {
-    QUIET: 'quiet' as XHRDebugLevel,
-    ERROR: 'error' as XHRDebugLevel,
-    WARNING: 'warning' as XHRDebugLevel,
-    LOG: 'log' as XHRDebugLevel,
-    DETAILS: 'details' as XHRDebugLevel
-};
+export type XHRFetchMethod =
+    | 'OPTIONS'
+    | 'HEAD'
+    | 'GET'
+    | 'PATCH'
+    | 'PUT'
+    | 'POST'
+    | 'DELETE'
+    | 'CONNECT'
+    | 'TRACE'
+    | 'QUERY';
 
-export type XHRFetchMethod = 'OPTIONS' | 'HEAD' | 'GET' | 'PATCH' | 'PUT' | 'POST' | 'DELETE' | 'CONNECT' | 'TRACE';
-export const XHR_FETCH_METHODS = {
-    OPTIONS: 'OPTIONS' as XHRFetchMethod,
-    HEAD: 'HEAD' as XHRFetchMethod,
-    GET: 'GET' as XHRFetchMethod,
-    PATCH: 'PATCH' as XHRFetchMethod,
-    PUT: 'PUT' as XHRFetchMethod,
-    POST: 'POST' as XHRFetchMethod,
-    DELETE: 'DELETE' as XHRFetchMethod,
-    CONNECT: 'CONNECT' as XHRFetchMethod,
-    TRACE: 'TRACE' as XHRFetchMethod
-};
+export enum XHR_FETCH_METHODS {
+    OPTIONS = 'OPTIONS',
+    HEAD = 'HEAD',
+    GET = 'GET',
+    PATCH = 'PATCH',
+    PUT = 'PUT',
+    POST = 'POST',
+    DELETE = 'DELETE',
+    CONNECT = 'CONNECT',
+    TRACE = 'TRACE',
+    QUERY = 'QUERY'
+}
 
-export interface XHRFetchOptions {
+export enum XHR_DEBUG_LEVELS {
+    QUIET = 'quiet',
+    ERROR = 'error',
+    WARNING = 'warning',
+    LOG = 'log',
+    DETAILS = 'details'
+}
+
+export interface XHRFetchOptions<TBody = unknown> {
     method?: XHRFetchMethod;
-    headers?: Record<string, string>;
-    params?: Record<string, any>;
-    body?: any;
+    headers?: TRecord<string>;
+    params?: TRecord;
+    body?: TBody;
 }
 
 export interface XHR {
-    buildRequest(path: string, options: XHRFetchOptions): void;
-    fetch<T>(path: string, options?: XHRFetchOptions): Promise<T | any>;
+    fetch<TResponse, TBody>(path: string, options?: XHRFetchOptions<TBody>): Promise<TResponse | Error>;
     abort(reason?: string): void;
     reset(): void;
+    getPathRequest(path: string): PathRequestConfig | undefined;
 }
 
 export interface XHRConfiguration {
@@ -41,4 +88,3 @@ export interface XHRConfiguration {
     debug?: XHRDebugLevel;
     secure?: boolean;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */

@@ -1,5 +1,5 @@
-import { capitalize } from '@/string';
-import { describe, test, expect } from '@jest/globals';
+import { capitalize } from './capitalize';
+import { describe, test, expect } from 'vitest';
 
 describe('capitalize', () => {
     test('Transforms a valid string first character into its capital', () => {

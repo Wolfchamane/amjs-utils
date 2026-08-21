@@ -1,5 +1,5 @@
-import { decamelize } from '@/string';
-import { describe, test, expect } from '@jest/globals';
+import { decamelize } from './decamelize';
+import { describe, test, expect } from 'vitest';
 
 describe('decamelize', () => {
     test('Transforms a camelCase text into a word-separated text', () => {

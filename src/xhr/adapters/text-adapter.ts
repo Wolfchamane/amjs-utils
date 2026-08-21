@@ -1,6 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { DefaultXHR } from '../default-xhr';
-import { XHR_FETCH_METHODS, type XHRFetchMethod } from '../types';
+import { type PathRequestConfig, XHR_FETCH_METHODS } from '../types';
+import { EMPTY_BODY_ERROR, UNSERIALIZE_EMPTY_REQUEST_ERROR, SERIALIZE_EMPTY_REQUEST_ERROR } from '../constants';
+import { TRecord } from '../../types';
 
 /**
  * Adaptor for any `'text/plain'` AJAX Http Request.
@@ -10,39 +11,39 @@ export class TextAdapter extends DefaultXHR {
     /**
      * @override
      */
-    protected _serialize(headers?: Record<string, string>, body?: any): Promise<void | Error> {
-        return new Promise((resolve, reject) => {
+    protected _serialize(path: string, headers?: TRecord<string>, body?: any): Promise<void | Error> {
+        return new Promise(resolve => {
             this._log(this.LOG_INFO, false, `Serializing request for text`);
-            if (this.request && this.url) {
-                const textHeaders: Record<string, string> = Object.assign({}, headers || {}, {
+            const config: PathRequestConfig | undefined = this.getPathRequest(path);
+            if (config && config.request && config.url) {
+                const textHeaders: TRecord<string> = Object.assign({}, headers || {}, {
                     Accept: 'text/plain',
                     'Content-Type': 'text/plain'
                 });
 
                 Object.keys(textHeaders).forEach((key: string) => {
-                    this.request?.headers.set(key, textHeaders[key]);
+                    config.request?.headers.set(key, textHeaders[key]);
                 });
 
-                if (
-                    [XHR_FETCH_METHODS.PATCH, XHR_FETCH_METHODS.PUT, XHR_FETCH_METHODS.POST].includes(
-                        this.request?.method as XHRFetchMethod
-                    )
-                ) {
-                    if (body) {
-                        this.request = new Request(this.url, {
-                            method: this.request?.method,
-                            headers: this.request?.headers,
-                            body: JSON.stringify(body)
-                        });
-                    } else {
-                        reject(new Error('Cannot serialize empty body'));
-                    }
+                const isModifyingRequest: boolean =
+                    [`${XHR_FETCH_METHODS.PATCH}`, `${XHR_FETCH_METHODS.PUT}`, `${XHR_FETCH_METHODS.POST}`].includes(
+                        `${config.request.method}`
+                    ) && !!body;
+                if (isModifyingRequest) {
+                    config.request = new Request(config.url, {
+                        method: config.request.method,
+                        headers: config.request.headers,
+                        body: JSON.stringify(body)
+                    }) as Request;
+                } else {
+                    throw EMPTY_BODY_ERROR;
                 }
 
-                this._log(this.LOG_DETAIL, false, `Request override to: %o`, this.request);
+                this._log(this.LOG_DETAIL, false, `Request override to: %o`, config);
+                this._setPathRequest(path, config);
                 resolve();
             } else {
-                reject(new Error('Cannot serialized undefined request'));
+                throw SERIALIZE_EMPTY_REQUEST_ERROR;
             }
         });
     }
@@ -50,13 +51,13 @@ export class TextAdapter extends DefaultXHR {
     /**
      * @override
      */
-    protected async _unSerialize(): Promise<string | Error> {
+    protected async _unSerialize<T = string>(path: string): Promise<T | Error> {
         this._log(this.LOG_INFO, false, `unSerializing request for text/plain`);
-        if (this.response && this.response.ok) {
-            return await this.response.text();
+        const config: PathRequestConfig | undefined = this.getPathRequest(path);
+        if (config && config.response && config.response.ok) {
+            return (await config.response.text()) as T;
         } else {
-            throw new Error('Cannot unSerialize empty or failed response');
+            throw UNSERIALIZE_EMPTY_REQUEST_ERROR;
         }
     }
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */

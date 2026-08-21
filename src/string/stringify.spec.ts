@@ -1,5 +1,5 @@
-import { stringify } from '../../../string';
-import { describe, test, expect } from '@jest/globals';
+import { stringify } from './stringify';
+import { describe, test, expect } from 'vitest';
 
 describe('stringify', () => {
     test('Throws an error if argument cannot turn into text', () => {
