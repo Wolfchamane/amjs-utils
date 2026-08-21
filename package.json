@@ -38,9 +38,10 @@
     "scripts": {
         "build": "tsc",
         "build:doc": "typedoc --tsconfig tsconfig.json --options typedoc.config.js",
-        "format": "prettier --config .prettierrc .",
+        "lint": "npm run format:check && npm run lint:check && npm run type:check && npm run test:coverage",
+        "format:check": "prettier --config .prettierrc --check .",
         "format:fix": "prettier --config .prettierrc --write .",
-        "lint": "eslint --config eslint.config.js src/**/*.ts ",
+        "lint:check": "eslint --config eslint.config.js src/**/*.ts ",
         "lint:fix": "eslint --fix --config eslint.config.js src/**/*.ts",
         "test": "vitest",
         "test:coverage": "vitest --coverage",
