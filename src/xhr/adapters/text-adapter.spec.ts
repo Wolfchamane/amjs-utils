@@ -1,7 +1,7 @@
-import type { XHR } from '../types';
+import { type XHR, XHR_FETCH_METHODS } from '../types';
 import { TextAdapter } from './text-adapter';
 import { describe, test, expect, beforeEach } from 'vitest';
-import { XHR_FETCH_METHODS, EMPTY_BODY_ERROR } from '../constants';
+import { EMPTY_BODY_ERROR } from '../constants';
 
 describe('TextAdapter', () => {
     const hostname: string = 'example';

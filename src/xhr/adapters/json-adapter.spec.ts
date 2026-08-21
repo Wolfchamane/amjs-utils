@@ -1,7 +1,7 @@
-import { type XHR } from '../types';
+import { type XHR, XHR_FETCH_METHODS } from '../types';
 import { JSONAdapter } from './json-adapter';
 import { describe, test, expect, beforeEach } from 'vitest';
-import { EMPTY_BODY_ERROR, XHR_FETCH_METHODS } from '../constants';
+import { EMPTY_BODY_ERROR } from '../constants';
 
 describe('JSONAdapter', () => {
     const hostname: string = 'example';
