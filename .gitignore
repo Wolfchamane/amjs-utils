@@ -1,7 +1,7 @@
-.idea
+.idea/
+node_modules/
+coverage/
+dist/
+docs/
 .DS_Store
-node_modules
 npm*
-coverage
-dist
-docs
